@@ -5,7 +5,7 @@
 <title>T.L.I.M! – This Land Is Mine!</title>
 <style>
   *{margin:0;padding:0;box-sizing:border-box;}
-  body{background:#000;color:#fff;font-family:Arial,Helvetica,sans-serif;overflow:hidden;}
+  body{background:#000;color:#fff;font-family:Arial,Helvetica,sans-serif;overflow:hidden;position:relative;}
   #mainMenu{
     position:fixed;top:0;left:0;right:0;bottom:0;
     background:#000;
@@ -72,6 +72,10 @@
   button.active{background:#28a745;border-color:#28a745;}
   button.revolution{background:#001f3f;color:#fff;border:1px solid #007bff;}
   button.revolution:hover{background:#007bff;color:#fff;}
+  button.control{background:#6f42c1;color:#fff;}
+  button.control:hover{background:#5a32a3;}
+  button.ego{background:#ff00ff;color:#fff;border:2px solid #ff00ff;box-shadow:0 0 15px #ff00ff;}
+  button.ego:hover{background:#ff33ff;box-shadow:0 0 25px #ff00ff;}
   #factions{display:flex;gap:4px;flex-wrap:wrap;max-width:600px;}
   .fac{
     padding:6px 10px;border-radius:6px;color:#fff;font-size:12px;cursor:pointer;
@@ -134,7 +138,7 @@
     100%{opacity:1;transform:scale(1);}
   }
   canvas{image-rendering:pixelated;image-rendering:-moz-crisp-edges;
-         image-rendering:crisp-edges;}
+         image-rendering:crisp-edges;position:absolute;top:0;left:0;z-index:2;}
   .hint{color:#4CAF50;font-size:11px;font-style:italic;}
   .shockwave {
     position: fixed;
@@ -185,7 +189,9 @@
   <button id="addBtn">Spawn</button>
   <button id="removeBtn">Remove</button>
   <button id="godBtn">God Mode</button>
-  <button id="revolutionBtn" class="revolution">Reinforcements?</button>
+  <button id="controlBtn" class="control">Control</button>
+  <button id="revolutionBtn" class="revolution">Secret Code</button>
+  <button id="egoBtn" class="ego">EGO</button>
   <button id="makeAllianceBtn">Ally</button>
   <button id="breakAllianceBtn">Break</button>
   <select id="buffSelect">
@@ -204,7 +210,7 @@
   <button id="zoomIn">Zoom +</button>
   <button id="zoomOut">Zoom -</button>
   <div id="factions"></div>
-  <div class="hint">Press <b>F</b> to toggle HUD</div>
+  <div class="hint">Press <b>F</b> to toggle HUD | <b>C</b> to control | <b>E</b> for EGO</div>
 </div>
 <canvas id="game"></canvas>
 <div id="log" class="hidden"></div>
@@ -215,6 +221,101 @@
 </div>
 
 <script>
+// ====================== AUDIO ENGINE ======================
+const AudioContext = window.AudioContext || window.webkitAudioContext;
+let audioCtx = null;
+
+function initAudio() {
+  if (audioCtx) return;
+  audioCtx = new AudioContext();
+}
+
+function playSound(freq = 440, type = 'sine', duration = 0.1, volume = 0.3, detune = 0) {
+  if (!audioCtx) return;
+  const osc = audioCtx.createOscillator();
+  const gain = audioCtx.createGain();
+  osc.connect(gain);
+  gain.connect(audioCtx.destination);
+  osc.type = type;
+  osc.frequency.value = freq;
+  osc.detune.value = detune;
+  gain.gain.setValueAtTime(0, audioCtx.currentTime);
+  gain.gain.linearRampToValueAtTime(volume, audioCtx.currentTime + 0.01);
+  gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + duration);
+  osc.start();
+  osc.stop(audioCtx.currentTime + duration);
+}
+
+// Sound Library — Clean, Satisfying, Unique
+const SOUNDS = {
+  menu:    () => playSound(600, 'square', 0.12, 0.25, 200),
+  start:   () => playSound(800, 'sawtooth', 0.15, 0.3, -100),
+  stop:    () => playSound(500, 'triangle', 0.1, 0.25, 300),
+  spawn:   () => playSound(900, 'sine', 0.08, 0.28, 400),
+  remove:  () => playSound(300, 'square', 0.12, 0.3, -200),
+  god:     () => playSound(1200, 'sine', 0.18, 0.35, 600),
+  control: () => playSound(700, 'sawtooth', 0.14, 0.32, 100),
+  revolution: () => {
+    playSound(1000, 'square', 0.2, 0.4, 800);
+    setTimeout(() => playSound(1200, 'sine', 0.15, 0.3, 1000), 80);
+  },
+  ego:     () => {
+    playSound(1500, 'sawtooth', 0.25, 0.45, 1200);
+    setTimeout(() => playSound(1800, 'sine', 0.2, 0.4, 1400), 100);
+  },
+  ally:    () => playSound(850, 'triangle', 0.1, 0.3, 200),
+  break:   () => playSound(400, 'square', 0.15, 0.32, -300),
+  buff:    () => playSound(1100, 'sine', 0.1, 0.3, 500),
+  zoomIn:  () => playSound(950, 'sine', 0.07, 0.25, 300),
+  zoomOut: () => playSound(750, 'sine', 0.07, 0.25, -100),
+  discord: () => playSound(650, 'triangle', 0.12, 0.28, 0),
+  reset:   () => {
+    playSound(200, 'square', 0.18, 0.35, -400);
+    setTimeout(() => playSound(400, 'sine', 0.12, 0.3, -200), 100);
+  }
+};
+
+// Attach sounds to all buttons
+function attachButtonSounds() {
+  const btnMap = {
+    playBtn: 'menu',
+    tutorialBtn: 'menu',
+    creditsBtn: 'menu',
+    discordBtn: 'discord',
+    menuBtn: 'menu',
+    resetBtn: 'reset',
+    startBtn: 'start',
+    stopBtn: 'stop',
+    addBtn: 'spawn',
+    removeBtn: 'remove',
+    godBtn: 'god',
+    controlBtn: 'control',
+    revolutionBtn: 'revolution',
+    egoBtn: 'ego',
+    makeAllianceBtn: 'ally',
+    breakAllianceBtn: 'break',
+    applyBuffBtn: 'buff',
+    zoomIn: 'zoomIn',
+    zoomOut: 'zoomOut'
+  };
+
+  Object.entries(btnMap).forEach(([id, sound]) => {
+    const el = document.getElementById(id);
+    if (el) {
+      el.addEventListener('click', () => {
+        initAudio();
+        SOUNDS[sound]();
+      });
+    }
+  });
+
+  // Special: Select buff dropdown
+  document.getElementById('buffSelect').addEventListener('change', () => {
+    initAudio();
+    playSound(1000, 'sine', 0.06, 0.2, 200);
+  });
+}
+
 // ====================== GLOBALS ======================
 const canvas = document.getElementById('game');
 const ctx = canvas.getContext('2d');
@@ -232,27 +333,24 @@ let startDragX = 0, startDragY = 0;
 let allyingMode = false;
 let breakingMode = false;
 let seed = Math.random() * 1000000;
-
 // ----- Terrain -----
 const TERRAIN = {DEEP_OCEAN:0, SHALLOW_WATER:5, PLAINS:1, FOREST:2, MOUNTAIN:3, DESERT:4};
 const TERRAIN_COLORS = [[10,20,60], [40,60,120], [100,180,80], [60,120,60], [200,150,50], [80,140,180]];
 const TERRAIN_ATTACK = {0:0,1:0.8,2:0.7,3:0.4,4:0.9,5:0.6};
 const TERRAIN_DEFENSE = {0:0,1:1.0,2:1.4,3:2.0,4:1.2,5:1.8};
-
 // ----- Weather -----
 const WEATHER = { CLEAR:0, RAIN:1, STORM:2, FOG:3, SNOW:4 };
 let currentWeather = WEATHER.CLEAR, weatherTick = 0;
-
 // ----- Map data -----
 let terrain = new Uint8Array(MAP_W*MAP_H);
 let map = new Uint16Array(MAP_W*MAP_H);
 let troops = new Uint8Array(MAP_W*MAP_H);
 let navies = new Uint8Array(MAP_W*MAP_H);
 let capitals = new Uint16Array(MAP_W*MAP_H);
-
 // ----- Factions -----
 let factions = [];
 let selectedFaction = null;
+let controlledFaction = null;
 let running = false, frameId = null, tick = 0;
 let warDeclarations = new Map();
 let historyLog = [];
@@ -260,8 +358,7 @@ let godMode = false;
 let lastBetrayalTick = 0;
 let napoleonActive = false;
 let hudHidden = true;
-let audioContext = null;
-
+let egoActive = new Map(); // factionId -> endTick
 // ----- Tactics -----
 const TACTICS = { BLITZKRIEG: 0, FORTRESS: 1, GUERRILLA: 2, NAVAL: 3, BALANCED: 4 };
 const TACTIC_NAMES = ['Blitzkrieg', 'Fortress', 'Guerrilla', 'Naval', 'Balanced'];
@@ -331,16 +428,15 @@ function createShockwave(x, y){
   setTimeout(() => el.remove(), 800);
 }
 function playNapoleonSound(){
-  if(audioContext) audioContext.close();
-  audioContext = new (window.AudioContext || window.webkitAudioContext)();
-  const osc = audioContext.createOscillator();
-  const gain = audioContext.createGain();
-  osc.connect(gain); gain.connect(audioContext.destination);
-  osc.frequency.setValueAtTime(440, audioContext.currentTime);
-  osc.frequency.exponentialRampToValueAtTime(880, audioContext.currentTime + 0.5);
-  gain.gain.setValueAtTime(0.3, audioContext.currentTime);
-  gain.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.5);
-  osc.start(); osc.stop(audioContext.currentTime + 0.5);
+  initAudio();
+  const osc = audioCtx.createOscillator();
+  const gain = audioCtx.createGain();
+  osc.connect(gain); gain.connect(audioCtx.destination);
+  osc.frequency.setValueAtTime(440, audioCtx.currentTime);
+  osc.frequency.exponentialRampToValueAtTime(880, audioCtx.currentTime + 0.5);
+  gain.gain.setValueAtTime(0.4, audioCtx.currentTime);
+  gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.5);
+  osc.start(); osc.stop(audioCtx.currentTime + 0.5);
 }
 
 // ====================== MAIN MENU ======================
@@ -356,12 +452,14 @@ document.getElementById('tutorialBtn').onclick = () => {
 - Watch nations fight for control
 - Click "Start" to begin
 - Select a nation to control it
+- Use "Control" to take direct command (disables AI)
 - Use "Ally" / "Break" for diplomacy
 - "God Mode" lets you paint land
-- "Reinforcements?" requires code: "reinforcements"
+- "Secret Code" = VIVA
+- "EGO" = 5x boost for 2 seconds (press E)
 - Buff any nation up to 10x
 - Drag to pan, scroll to zoom
-- Press F to toggle HUD
+- Press F to toggle HUD, C to control, E for EGO
 Claim your land!`);
 };
 document.getElementById('creditsBtn').onclick = () => {
@@ -378,47 +476,8 @@ document.getElementById('discordBtn').onclick = () => {
   window.open('https://discord.gg/Vme4AgYGnY', '_blank');
 };
 
-// ====================== CODE INPUT FOR REVOLUTION ======================
-let revolutionCode = '';
-document.getElementById('revolutionBtn').onclick = () => {
-  if(napoleonActive){ popup('Reinforcements already deployed!','#ff9800'); return; }
-  if(revolutionCode === 'reinforcements'){
-    deployReinforcements();
-  } else {
-    const input = prompt('Enter code for reinforcements:');
-    if(input && input.toLowerCase() === 'reinforcements'){
-      revolutionCode = 'reinforcements';
-      popup('Code accepted! Reinforcements ready!','#4CAF50');
-      deployReinforcements();
-    } else {
-      popup('aw join the discord server to find the code xd','#ff9800');
-    }
-  }
-};
-function deployReinforcements(){
-  let france = factions.find(f=>f.name.includes('French'));
-  if(!france){
-    spawnNation(true);
-    france = factions[factions.length-1];
-  }
-  napoleonActive = true;
-  france.napoleonBoost = 3.0;
-  france.aggression = 1.8;
-  france.tactic = TACTICS.BLITZKRIEG;
-  for(let i=0;i<map.length;i++){
-    if(map[i]===france.id){
-      if(terrain[i]===TERRAIN.SHALLOW_WATER) navies[i] = Math.min(9,navies[i]*2);
-      else troops[i] = Math.min(9,troops[i]*2);
-    }
-  }
-  popup('REINFORCEMENTS ARRIVE!','#ffd700',true);
-  log('REINFORCEMENTS bolster France with 3x power and Blitzkrieg tactics!');
-  playNapoleonSound();
-  updateFactionUI(); drawMap();
-}
-
-// ====================== WORLD GEN ======================
-function generateWorld(){
+// ====================== WORLD GENERATION ======================
+function generateRandomWorld(){
   seed = Math.random() * 1000000;
   const noise = new Float32Array(MAP_W*MAP_H);
   const scale = 0.06 + Math.random() * 0.03;
@@ -447,6 +506,10 @@ function generateWorld(){
     else if(n<0.83) terrain[i]=TERRAIN.DESERT;
     else terrain[i]=TERRAIN.MOUNTAIN;
   }
+}
+
+function generateWorld(){
+  generateRandomWorld();
 }
 
 // ====================== WEATHER ======================
@@ -482,6 +545,10 @@ class Faction{
     this.tactic = Math.floor(Math.random() * 5);
     this.tacticAge = 0;
     this.tacticChangeTick = 500 + Math.floor(Math.random() * 1000);
+    this.aiEnabled = true;
+  }
+  getEffectiveBoost(){
+    return this.napoleonBoost * (egoActive.has(this.id) ? 5 : 1);
   }
   getTacticMods(){
     switch(this.tactic){
@@ -493,6 +560,7 @@ class Faction{
     }
   }
   updateTactic(){
+    if(!this.aiEnabled) return;
     this.tacticAge++;
     if(this.tacticAge > this.tacticChangeTick){
       const old = TACTIC_NAMES[this.tactic];
@@ -505,23 +573,26 @@ class Faction{
 }
 
 // ====================== SPAWN NATION ======================
-function spawnNation(isFrance=false){
-  const col = isFrance ? '#001f3f' : randomColor();
-  const name = isFrance ? 'French Empire' : randomNationName();
-  let x,y,i,attempts=0;
-  do{
-    x=Math.floor(Math.random()*MAP_W);
-    y=Math.floor(Math.random()*MAP_H);
-    i=idx(x,y);
-    attempts++;
-    if(attempts>2000) { log('No free land!'); return; }
-  }while(map[i]!==0 || terrain[i]===TERRAIN.DEEP_OCEAN || terrain[i]===TERRAIN.SHALLOW_WATER);
-  const f = new Faction(factions.length,col,x,y,name);
+function spawnNation(x,y,name,color,isSpecial=false){
+  if(x===undefined){
+    let attempts=0;
+    do{
+      x=Math.floor(Math.random()*MAP_W);
+      y=Math.floor(Math.random()*MAP_H);
+      attempts++;
+      if(attempts>2000) { log('No free land!'); return null; }
+    }while(map[idx(x,y)]!==0 || terrain[idx(x,y)]===TERRAIN.DEEP_OCEAN || terrain[idx(x,y)]===TERRAIN.SHALLOW_WATER);
+  }
+  const col = color || randomColor();
+  const n = name || randomNationName();
+  const f = new Faction(factions.length,col,x,y,n);
+  if(isSpecial) f.napoleonBoost = 10.0;
   factions.push(f);
   placeCapital(f,x,y);
-  if(isFrance) selectedFaction=f.id;
-  log(`${f.name} founded at (${x},${y}) using ${TACTIC_NAMES[f.tactic]}`);
+  if(isSpecial) selectedFaction = controlledFaction = f.id;
+  log(`${f.name} rises at (${x},${y})`);
   updateFactionUI(); drawMap();
+  return f;
 }
 function placeCapital(f,x,y){
   const i=idx(x,y);
@@ -529,11 +600,90 @@ function placeCapital(f,x,y){
   f.cells=1; f.totalTroops=10;
 }
 
+// ====================== EGO BUFF ======================
+function applyEgo(){
+  if(selectedFaction === null) return;
+  const f = factions[selectedFaction];
+  if(egoActive.has(f.id)) return;
+  egoActive.set(f.id, tick + 120); // 2 seconds = 120 ticks (60 fps)
+  log(`${f.name} activates EGO! 5x power for 2s!`);
+  popup('EGO ACTIVATED!', '#ff00ff', true);
+  setTimeout(() => {
+    egoActive.delete(f.id);
+    updateFactionUI();
+  }, 2000);
+}
+
+// ====================== PLAYER CONTROL ======================
+function playerControl(){
+  if(controlledFaction === null || !factions[controlledFaction]?.aiEnabled) return;
+  const f = factions[controlledFaction];
+  if(!f.alive) return;
+  const dirs=[[1,0],[-1,0],[0,1],[0,-1]];
+  const wmod = getWeatherMods();
+  const tmods = f.getTacticMods();
+  const weatherBoost = currentWeather === f.preferredWeather ? 1.2 : 1.0;
+
+  const ownTiles = [];
+  for(let i=0;i<map.length;i++){
+    if(map[i]===f.id && troops[i]>1 && ![TERRAIN.DEEP_OCEAN,TERRAIN.SHALLOW_WATER].includes(terrain[i])){
+      ownTiles.push(i);
+    }
+  }
+  if(!ownTiles.length) return;
+
+  for(const i of ownTiles){
+    const x = i % MAP_W, y = Math.floor(i / MAP_W);
+    const att = troops[i];
+    for(const [dx,dy] of dirs){
+      const nx=x+dx, ny=y+dy;
+      if(nx<0||ny<0||nx>=MAP_W||ny>=MAP_H) continue;
+      const ni=idx(nx,ny);
+      const other=map[ni];
+      if(other===f.id || (factions[other] && f.allies.has(other))) continue;
+      if(terrain[ni]===TERRAIN.DEEP_OCEAN) continue;
+      const def = terrain[ni]===TERRAIN.SHALLOW_WATER ? navies[ni] : troops[ni];
+      const attMod = TERRAIN_ATTACK[terrain[i]]*wmod.atk*f.getEffectiveBoost()*f.aggression*weatherBoost*tmods.atk;
+      const effAtk = Math.floor(att*attMod);
+      if(effAtk > def * 1.2){
+        map[ni]=f.id;
+        if(terrain[ni]===TERRAIN.SHALLOW_WATER) nav,navies[ni]=Math.max(1,effAtk-def);
+        else troops[ni]=Math.max(1,effAtk-def);
+        troops[i]=Math.max(1,att-1);
+        if(capitals[ni]){
+          capitals[ni]=0;
+          factions[other].alive=false;
+          popup(`${f.name} captures capital!`,'#ff1744');
+          log(`${f.name} conquers ${factions[other].name}`);
+          for(let j=0;j<map.length;j++) if(map[j]===other){ map[j]=0; troops[j]=0; navies[j]=0; }
+        }
+        return;
+      }
+    }
+  }
+
+  for(const i of ownTiles){
+    const x = i % MAP_W, y = Math.floor(i / MAP_W);
+    const att = troops[i];
+    if(att<=2) continue;
+    for(const [dx,dy] of dirs){
+      const nx=x+dx, ny=y+dy;
+      if(nx<0||ny<0||nx>=MAP_W||ny>=MAP_H) continue;
+      const ni=idx(nx,ny);
+      if(map[ni]!==0 || terrain[ni]===TERRAIN.DEEP_OCEAN) continue;
+      if(Math.random() < 0.8){
+        map[ni]=f.id; troops[ni]=1; troops[i]=Math.max(1,att-1);
+        return;
+      }
+    }
+  }
+}
+
 // ====================== BETRAYAL ======================
 function checkBetrayals(){
   if(tick-lastBetrayalTick<600) return;
   factions.forEach(f=>{
-    if(!f.alive || Math.random()>0.001) return;
+    if(!f.alive || !f.aiEnabled || Math.random()>0.001) return;
     const allyIds = Array.from(f.allies);
     if(!allyIds.length) return;
     const betrayId = allyIds[Math.floor(Math.random()*allyIds.length)];
@@ -555,20 +705,22 @@ function drawMap(){
   for(let i=0;i<map.length;i++){
     const base=i*4;
     const fid=map[i];
-    const t=terrain[i];
-    let [r,g,b]=TERRAIN_COLORS[t];
+    let r,g,b;
     if(fid!==0 && factions[fid] && factions[fid].alive){
-      const rgb = factions[fid].rgb;
-      const blend = (t===TERRAIN.DEEP_OCEAN||t===TERRAIN.SHALLOW_WATER)?0.4:0.6;
-      r=r*(1-blend)+rgb[0]*blend;
-      g=g*(1-blend)+rgb[1]*blend;
-      b=b*(1-blend)+rgb[2]*blend;
-      if(napoleonActive && factions[fid].name.includes('French')){
+      [r,g,b] = factions[fid].rgb;
+      if(egoActive.has(fid)){
+        const pulse = 0.5 + 0.5*Math.sin(tick*0.5);
+        r = Math.min(255, r + 100*pulse);
+        g = Math.min(255, g + 0*pulse);
+        b = Math.min(255, b + 200*pulse);
+      } else if(factions[fid].napoleonBoost > 1){
         const pulse = 0.3 + 0.2*Math.sin(tick*0.2);
         r = Math.min(255, r + 40*pulse);
         g = Math.min(255, g + 30*pulse);
         b = Math.min(255, b + 60*pulse);
       }
+    } else {
+      [r,g,b] = TERRAIN_COLORS[terrain[i]];
     }
     data[base]=r; data[base+1]=g; data[base+2]=b; data[base+3]=255;
   }
@@ -626,13 +778,17 @@ function step(){
   if(tick%30===0) checkBetrayals();
   const wmod = getWeatherMods();
   const weatherBoost = (faction) => (faction && currentWeather === faction.preferredWeather ? 1.2 : 1.0);
-  /* Growth */
+
+  if(controlledFaction !== null && factions[controlledFaction]?.aiEnabled === false){
+    playerControl();
+  }
+
   for(let i=0;i<map.length;i++){
     const fid=map[i];
-    if(!fid||!factions[fid].alive) continue;
+    if(!fid||!factions[fid].alive || !factions[fid].aiEnabled) continue;
     const f=factions[fid];
     const tmods = f.getTacticMods();
-    const chance = 0.35 * wmod.grow * f.napoleonBoost * f.aggression * weatherBoost(f) * tmods.grow;
+    const chance = 0.35 * wmod.grow * f.getEffectiveBoost() * f.aggression * weatherBoost(f) * tmods.grow;
     const isWater = terrain[i]===TERRAIN.SHALLOW_WATER;
     const troopsHere = isWater ? navies[i] : troops[i];
     if(capitals[i] && Math.random()<chance*1.8 && troopsHere<9){
@@ -645,20 +801,20 @@ function step(){
       changed=true;
     }
   }
-  /* Alliances */
+
   alive.forEach(f=>{
-    if (tick % 800 !== 0 || Math.random() > 0.003) return;
+    if(!f.aiEnabled || tick % 800 !== 0 || Math.random() > 0.003) return;
     const possible = alive.filter(o => o.id !== f.id && !f.allies.has(o.id) && o.cells > 5 && f.cells > 5);
     if (!possible.length) return;
     const ally = possible[Math.floor(Math.random() * possible.length)];
     f.allies.add(ally.id); ally.allies.add(f.id);
     log(`${f.name} allies with ${ally.name}`);
   });
-  /* Combat & Expansion */
+
   for(let y=0;y<MAP_H;y++) for(let x=0;x<MAP_W;x++){
     const i=idx(x,y);
     const fid=map[i];
-    if(!fid||!factions[fid].alive) continue;
+    if(!fid||!factions[fid].alive || !factions[fid].aiEnabled) continue;
     const f=factions[fid];
     const tmods = f.getTacticMods();
     const isWater = terrain[i]===TERRAIN.SHALLOW_WATER;
@@ -676,7 +832,7 @@ function step(){
       }
       const def = terrain[ni]===TERRAIN.SHALLOW_WATER ? navies[ni] : troops[ni];
       const isCapAttack=capitals[ni];
-      const attMod = TERRAIN_ATTACK[terrain[i]]*wmod.atk*f.napoleonBoost*f.aggression * weatherBoost(f) * tmods.atk;
+      const attMod = TERRAIN_ATTACK[terrain[i]]*wmod.atk*f.getEffectiveBoost()*f.aggression * weatherBoost(f) * tmods.atk;
       const defMod = TERRAIN_DEFENSE[terrain[ni]]*wmod.def * weatherBoost(factions[other]) * (factions[other]?.getTacticMods().def || 1);
       const effAtk = Math.floor(att*attMod);
       let effDef = Math.floor(def*defMod);
@@ -709,10 +865,11 @@ function step(){
       }
     }
   }
+
   for(let y=0;y<MAP_H;y++) for(let x=0;x<MAP_W;x++){
     const i=idx(x,y);
     const fid=map[i];
-    if(!fid||!factions[fid].alive) continue;
+    if(!fid||!factions[fid].alive || !factions[fid].aiEnabled) continue;
     const f=factions[fid];
     const isWater = terrain[i]===TERRAIN.SHALLOW_WATER;
     const att = isWater ? navies[i] : troops[i];
@@ -730,6 +887,7 @@ function step(){
       }
     }
   }
+
   for(let i=0;i<map.length;i++){
     if(map[i]!==newMap[i] || troops[i]!==newTroops[i] || navies[i]!==newNavies[i]) changed=true;
     if(newMap[i] && factions[newMap[i]].alive){
@@ -753,10 +911,12 @@ function updateFactionUI(){
     el.className='fac';
     el.style.backgroundColor=f.color;
     const allies=Array.from(f.allies).map(a=>`<span class="ally-icon" style="background:${factions[a].color};" title="${factions[a].name}"></span>`).join('');
-    const cap=capitals[idx(f.capitalX,f.capitalY)]?' Star':''; // Star symbol
+    const cap=capitals[idx(f.capitalX,f.capitalY)]?' Star':''; 
     const boost = f.napoleonBoost>1?` <b style="color:#ffd700">x${f.napoleonBoost}</b>`:'';
     const tactic = ` <b style="color:#00ffff">${TACTIC_NAMES[f.tactic]}</b>`;
-    el.innerHTML=`<b>${f.name}</b>${boost}${tactic} ${f.cells}c/${f.totalTroops}L${f.totalNavies}N${cap} ${allies}`;
+    const control = controlledFaction===i ? ` <b style="color:#ff00ff">[CONTROL]</b>` : (f.aiEnabled ? '' : ` <b style="color:#888">[MANUAL]</b>`);
+    const ego = egoActive.has(i) ? ` <b style="color:#ff00ff; animation: pulse 0.5s infinite;">EGO</b>` : '';
+    el.innerHTML=`<b>${f.name}</b>${boost}${tactic}${control}${ego} ${f.cells}c/${f.totalTroops}L${f.totalNavies}N${cap} ${allies}`;
     if(i===selectedFaction) el.classList.add('selected');
     el.onclick=()=>{
       if(allyingMode){
@@ -784,15 +944,18 @@ function updateFactionUI(){
 }
 
 // ====================== BUTTONS ======================
-document.getElementById('resetBtn').onclick = ()=>{
+function resetWorld(){
   running=false; map.fill(0); troops.fill(0); navies.fill(0); capitals.fill(0);
-  factions=[]; selectedFaction=null; warDeclarations.clear(); tick=0; weatherTick=0;
+  factions=[]; selectedFaction=null; controlledFaction=null; warDeclarations.clear(); tick=0; weatherTick=0;
   currentWeather=WEATHER.CLEAR; historyLog=[]; conflictsDiv.innerHTML='';
-  lastBetrayalTick=0; napoleonActive=false; revolutionCode='';
+  lastBetrayalTick=0; napoleonActive=false; egoActive.clear();
   generateWorld(); updateWeather();
   for(let i=0;i<5;i++) spawnNation();
   log('New World Generated'); popup('World Ready!','#4CAF50'); drawMap();
-};
+  updateFactionUI();
+}
+
+document.getElementById('resetBtn').onclick = resetWorld;
 document.getElementById('startBtn').onclick = ()=>{ if(!running){running=true;frameId=requestAnimationFrame(step);} };
 document.getElementById('stopBtn').onclick = ()=>{ running=false; if(frameId) cancelAnimationFrame(frameId); };
 document.getElementById('addBtn').onclick = ()=>spawnNation();
@@ -803,10 +966,26 @@ document.getElementById('removeBtn').onclick = ()=>{
   for(let i=0;i<map.length;i++){
     if(map[i]===f.id){ map[i]=0; troops[i]=0; navies[i]=0; capitals[i]=0; }
   }
-  if(napoleonActive && f.name.includes('French')) napoleonActive=false;
+  if(controlledFaction === selectedFaction) controlledFaction = null;
+  egoActive.delete(f.id);
   log(`${f.name} removed`); selectedFaction=null; updateFactionUI(); drawMap();
 };
 document.getElementById('godBtn').onclick = ()=>{ godMode=!godMode; popup(godMode?'God Mode ON':'God Mode OFF',godMode?'#FFD700':'#666'); };
+document.getElementById('controlBtn').onclick = ()=>{
+  if(selectedFaction===null){ popup('Select a nation first!','#ff9800'); return; }
+  const f = factions[selectedFaction];
+  if(controlledFaction === selectedFaction){
+    f.aiEnabled = true;
+    controlledFaction = null;
+    popup('AI Control Resumed','#4CAF50');
+  } else {
+    if(controlledFaction !== null) factions[controlledFaction].aiEnabled = true;
+    controlledFaction = selectedFaction;
+    f.aiEnabled = false;
+    popup('You now control '+f.name+'!','#9C27B0');
+  }
+  updateFactionUI();
+};
 document.getElementById('makeAllianceBtn').onclick = ()=>{ if(selectedFaction===null){popup('Select first!','#ff9800');return;} allyingMode=true; breakingMode=false; popup('Click ally',' #2196f3'); };
 document.getElementById('breakAllianceBtn').onclick = ()=>{ if(selectedFaction===null){popup('Select first!','#ff9800');return;} breakingMode=true; allyingMode=false; popup('Click to break','#f44336'); };
 document.getElementById('applyBuffBtn').onclick = ()=>{
@@ -814,6 +993,23 @@ document.getElementById('applyBuffBtn').onclick = ()=>{
   const buff = parseInt(document.getElementById('buffSelect').value);
   factions[selectedFaction].napoleonBoost = buff;
   log(`${factions[selectedFaction].name} buffed to ${buff}x!`); updateFactionUI();
+};
+document.getElementById('egoBtn').onclick = applyEgo;
+document.getElementById('revolutionBtn').onclick = () => {
+  if(napoleonActive){ popup('Empire already risen!','#ff9800'); return; }
+  const input = prompt('Enter secret code:');
+  if(input && input.toUpperCase() === 'VIVA'){
+    napoleonActive = true;
+    const choice = Math.random() < 0.5 ? 'Mocca Empire' : 'Vitalita';
+    const color = choice === 'Mocca Empire' ? '#FFD700' : '#FF69B4';
+    const name = choice;
+    let x = Math.floor(MAP_W/2), y = Math.floor(MAP_H/2);
+    spawnNation(x,y,name,color,true);
+    popup('LONG LIVE THE EMPEROR!','#FFD700',true);
+    playNapoleonSound();
+  } else {
+    popup('Wrong code! Try harder.','#ff9800');
+  }
 };
 document.getElementById('zoomIn').onclick = ()=>{ zoomLevel += 0.2; resize(); };
 document.getElementById('zoomOut').onclick = ()=>{ zoomLevel = Math.max(0.2, zoomLevel - 0.2); resize(); };
@@ -879,14 +1075,20 @@ document.addEventListener('keydown', e => {
     e.preventDefault();
     toggleHUD();
   }
+  if((e.key === 'c' || e.key === 'C') && selectedFaction !== null){
+    document.getElementById('controlBtn').click();
+  }
+  if((e.key === 'e' || e.key === 'E') && selectedFaction !== null){
+    applyEgo();
+  }
 });
 
 // ====================== START GAME ======================
 function startGame(){
-  generateWorld(); updateWeather();
-  for(let i=0;i<5;i++) spawnNation();
+  resetWorld();
   selectedFaction=0; updateFactionUI(); resize();
-  log('T.L.I.M! - This Land Is Mine! Press F to toggle HUD.');
+  log('T.L.I.M! - This Land Is Mine! Press F to toggle HUD, C to control, E for EGO.');
+  attachButtonSounds(); // Initialize sounds after DOM
 }
 </script>
 </body>
