@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
-<head> <link rel="icon" type="type/webp" href="images/copy_594FEB75-C3D2-43D3-BA91-15A352196F40.webp">
+<head>
 <meta charset="UTF-8">
 <title>T.L.I.M! – This Land Is Mine!</title>
 <style>
@@ -27,6 +27,14 @@
   .subtitle{
     font-size:1.6em;color:#ccc;text-shadow:0 0 15px rgba(255,255,255,0.5);
     animation:glowPulse 2.5s ease-in-out infinite;
+  }
+  #timerDisplay{
+    font-size:1.4em;color:#ffd700;text-shadow:0 0 10px #ffd700;
+    margin-top:10px;
+  }
+  #graphicsSelect{
+    background:#333;color:#fff;padding:8px 16px;border-radius:8px;border:2px solid #ffd700;
+    font-size:1.2em;margin-top:10px;
   }
   #mainMenu button{
     background:linear-gradient(45deg, #001f3f, #007bff);
@@ -167,19 +175,26 @@
 </style>
 </head>
 <body>
-
 <!-- MAIN MENU -->
 <div id="mainMenu">
   <div class="glow-text">T.L.I.M!</div>
   <div class="subtitle">This Land Is Mine!</div>
+  <div id="timerDisplay">Play time: 00:00:00</div>
   <button id="playBtn">Play Game</button>
   <button id="tutorialBtn">How to Play</button>
   <button id="creditsBtn">Credits</button>
+  <div>
+    <label style="color:#ccc;">Graphics: </label>
+    <select id="graphicsSelect">
+      <option value="low">Low</option>
+      <option value="medium" selected>Medium</option>
+      <option value="high">High</option>
+    </select>
+  </div>
   <div id="discordBtn" title="Join Discord">
     <svg viewBox="0 0 24 24"><path d="M20.317 4.37a19.791 19.791 0 0 0-4.885-1.515a.074.074 0 0 0-.079.037c-.21.375-.444.864-.608 1.25a18.27 18.27 0 0 0-5.487 0a12.64 12.64 0 0 0-.617-1.25a.077.077 0 0 0-.079-.037A19.736 19.736 0 0 0 3.677 4.37a.07.07 0 0 0-.032.027C.533 9.046-.32 13.58.099 18.057a.082.082 0 0 0 .031.057a19.9 19.9 0 0 0 5.993 3.03a.078.078 0 0 0 .084-.028a14.09 14.09 0 0 0 1.226-1.994a.076.076 0 0 0-.041-.106a13.107 13.107 0 0 1-1.872-.892a.077.077 0 0 1-.008-.128a10.2 10.2 0 0 0 .372-.292a.074.074 0 0 1 .077-.01c3.928 1.793 8.18 1.793 12.062 0a.074.074 0 0 1 .078.01c.12.098.246.198.373.292a.077.077 0 0 1-.006.127a12.299 12.299 0 0 1-1.873.892a.077.077 0 0 0-.041.107c.36.698.772 1.362 1.225 1.993a.076.076 0 0 0 .084.028a19.839 19.839 0 0 0 6.002-3.03a.077.077 0 0 0 .032-.054c.5-5.177-.838-9.674-3.549-13.66a.061.061 0 0 0-.031-.03zM8.02 15.33c-1.183 0-2.157-1.085-2.157-2.419c0-1.333.956-2.419 2.157-2.419c1.21 0 2.176 1.096 2.157 2.42c0 1.333-.956 2.418-2.157 2.418zm7.975 0c-1.183 0-2.157-1.085-2.157-2.419c0-1.333.955-2.419 2.157-2.419c1.21 0 2.176 1.096 2.157 2.42c0 1.333-.946 2.418-2.157 2.418z"/></svg>
   </div>
 </div>
-
 <!-- GAME UI -->
 <div id="ui" class="hidden">
   <button id="menuBtn">Menu</button>
@@ -219,17 +234,14 @@
   <div id="history"></div>
   <div id="conflicts"></div>
 </div>
-
 <script>
 // ====================== AUDIO ENGINE ======================
 const AudioContext = window.AudioContext || window.webkitAudioContext;
 let audioCtx = null;
-
 function initAudio() {
   if (audioCtx) return;
   audioCtx = new AudioContext();
 }
-
 function playSound(freq = 440, type = 'sine', duration = 0.1, volume = 0.3, detune = 0) {
   if (!audioCtx) return;
   const osc = audioCtx.createOscillator();
@@ -245,36 +257,34 @@ function playSound(freq = 440, type = 'sine', duration = 0.1, volume = 0.3, detu
   osc.start();
   osc.stop(audioCtx.currentTime + duration);
 }
-
 // Sound Library — Clean, Satisfying, Unique
 const SOUNDS = {
-  menu:    () => playSound(600, 'square', 0.12, 0.25, 200),
-  start:   () => playSound(800, 'sawtooth', 0.15, 0.3, -100),
-  stop:    () => playSound(500, 'triangle', 0.1, 0.25, 300),
-  spawn:   () => playSound(900, 'sine', 0.08, 0.28, 400),
-  remove:  () => playSound(300, 'square', 0.12, 0.3, -200),
-  god:     () => playSound(1200, 'sine', 0.18, 0.35, 600),
+  menu: () => playSound(600, 'square', 0.12, 0.25, 200),
+  start: () => playSound(800, 'sawtooth', 0.15, 0.3, -100),
+  stop: () => playSound(500, 'triangle', 0.1, 0.25, 300),
+  spawn: () => playSound(900, 'sine', 0.08, 0.28, 400),
+  remove: () => playSound(300, 'square', 0.12, 0.3, -200),
+  god: () => playSound(1200, 'sine', 0.18, 0.35, 600),
   control: () => playSound(700, 'sawtooth', 0.14, 0.32, 100),
   revolution: () => {
     playSound(1000, 'square', 0.2, 0.4, 800);
     setTimeout(() => playSound(1200, 'sine', 0.15, 0.3, 1000), 80);
   },
-  ego:     () => {
+  ego: () => {
     playSound(1500, 'sawtooth', 0.25, 0.45, 1200);
     setTimeout(() => playSound(1800, 'sine', 0.2, 0.4, 1400), 100);
   },
-  ally:    () => playSound(850, 'triangle', 0.1, 0.3, 200),
-  break:   () => playSound(400, 'square', 0.15, 0.32, -300),
-  buff:    () => playSound(1100, 'sine', 0.1, 0.3, 500),
-  zoomIn:  () => playSound(950, 'sine', 0.07, 0.25, 300),
+  ally: () => playSound(850, 'triangle', 0.1, 0.3, 200),
+  break: () => playSound(400, 'square', 0.15, 0.32, -300),
+  buff: () => playSound(1100, 'sine', 0.1, 0.3, 500),
+  zoomIn: () => playSound(950, 'sine', 0.07, 0.25, 300),
   zoomOut: () => playSound(750, 'sine', 0.07, 0.25, -100),
   discord: () => playSound(650, 'triangle', 0.12, 0.28, 0),
-  reset:   () => {
+  reset: () => {
     playSound(200, 'square', 0.18, 0.35, -400);
     setTimeout(() => playSound(400, 'sine', 0.12, 0.3, -200), 100);
   }
 };
-
 // Attach sounds to all buttons
 function attachButtonSounds() {
   const btnMap = {
@@ -298,7 +308,6 @@ function attachButtonSounds() {
     zoomIn: 'zoomIn',
     zoomOut: 'zoomOut'
   };
-
   Object.entries(btnMap).forEach(([id, sound]) => {
     const el = document.getElementById(id);
     if (el) {
@@ -308,14 +317,12 @@ function attachButtonSounds() {
       });
     }
   });
-
   // Special: Select buff dropdown
   document.getElementById('buffSelect').addEventListener('change', () => {
     initAudio();
     playSound(1000, 'sine', 0.06, 0.2, 200);
   });
 }
-
 // ====================== GLOBALS ======================
 const canvas = document.getElementById('game');
 const ctx = canvas.getContext('2d');
@@ -333,9 +340,12 @@ let startDragX = 0, startDragY = 0;
 let allyingMode = false;
 let breakingMode = false;
 let seed = Math.random() * 1000000;
+let playStartTime = 0;
+let timerInterval = null;
+let graphicsLevel = 'medium';
 // ----- Terrain -----
 const TERRAIN = {DEEP_OCEAN:0, SHALLOW_WATER:5, PLAINS:1, FOREST:2, MOUNTAIN:3, DESERT:4};
-const TERRAIN_COLORS = [[10,20,60], [40,60,120], [100,180,80], [60,120,60], [200,150,50], [80,140,180]];
+const TERRAIN_COLORS = [[0,0,50], [150,205,80], [34,139,34], [128,128,128], [237,201,175], [64,164,223]];
 const TERRAIN_ATTACK = {0:0,1:0.8,2:0.7,3:0.4,4:0.9,5:0.6};
 const TERRAIN_DEFENSE = {0:0,1:1.0,2:1.4,3:2.0,4:1.2,5:1.8};
 // ----- Weather -----
@@ -362,7 +372,6 @@ let egoActive = new Map(); // factionId -> endTick
 // ----- Tactics -----
 const TACTICS = { BLITZKRIEG: 0, FORTRESS: 1, GUERRILLA: 2, NAVAL: 3, BALANCED: 4 };
 const TACTIC_NAMES = ['Blitzkrieg', 'Fortress', 'Guerrilla', 'Naval', 'Balanced'];
-
 // ====================== HELPERS ======================
 function idx(x,y){ return y*MAP_W + x; }
 function randomColor(){ return '#'+Math.floor(Math.random()*0xffffff).toString(16).padStart(6,'0'); }
@@ -438,7 +447,30 @@ function playNapoleonSound(){
   gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.5);
   osc.start(); osc.stop(audioCtx.currentTime + 0.5);
 }
-
+// ====================== TIMER FUNCTIONS ======================
+function startTimer() {
+  playStartTime = Date.now();
+  document.getElementById('timerDisplay').style.display = 'block';
+  if (timerInterval) clearInterval(timerInterval);
+  timerInterval = setInterval(updateTimer, 500);
+}
+function stopTimer() {
+  if (timerInterval) clearInterval(timerInterval);
+  timerInterval = null;
+}
+function updateTimer() {
+  if (!playStartTime) return;
+  const elapsed = Math.floor((Date.now() - playStartTime) / 1000);
+  const h = String(Math.floor(elapsed / 3600)).padStart(2, '0');
+  const m = String(Math.floor((elapsed % 3600) / 60)).padStart(2, '0');
+  const s = String(elapsed % 60).padStart(2, '0');
+  document.getElementById('timerDisplay').textContent = `Play time: ${h}:${m}:${s}`;
+}
+// ====================== GRAPHICS SETTING ======================
+function applyGraphics() {
+  graphicsLevel = document.getElementById('graphicsSelect').value;
+  resize();
+}
 // ====================== MAIN MENU ======================
 document.getElementById('playBtn').onclick = () => {
   mainMenu.style.opacity = '0';
@@ -446,6 +478,8 @@ document.getElementById('playBtn').onclick = () => {
   hudHidden = false;
   toggleHUD();
   startGame();
+  startTimer();
+  applyGraphics();
 };
 document.getElementById('tutorialBtn').onclick = () => {
   alert(`T.L.I.M! - This Land Is Mine!
@@ -455,7 +489,6 @@ document.getElementById('tutorialBtn').onclick = () => {
 - Use "Control" to take direct command (disables AI)
 - Use "Ally" / "Break" for diplomacy
 - "God Mode" lets you paint land
-- "Secret Code" = VIVA
 - "EGO" = 5x boost for 2 seconds (press E)
 - Buff any nation up to 10x
 - Drag to pan, scroll to zoom
@@ -471,23 +504,40 @@ document.getElementById('menuBtn').onclick = () => {
   setTimeout(() => mainMenu.style.opacity = '1', 50);
   hudHidden = true;
   toggleHUD();
+  stopTimer();
+  updateTimer();
 };
 document.getElementById('discordBtn').onclick = () => {
   window.open('https://discord.gg/Vme4AgYGnY', '_blank');
 };
-
+document.getElementById('graphicsSelect').addEventListener('change', applyGraphics);
 // ====================== WORLD GENERATION ======================
 function generateRandomWorld(){
   seed = Math.random() * 1000000;
   const noise = new Float32Array(MAP_W*MAP_H);
-  const scale = 0.06 + Math.random() * 0.03;
-  const octaves = 3 + Math.floor(Math.random() * 3);
+  const scale = 0.1 + Math.random() * 0.05;
+  const octaves = 5 + Math.floor(Math.random() * 3);
+  function valueNoise(x, y) {
+    const xi = Math.floor(x), yi = Math.floor(y);
+    const xf = x - xi, yf = y - yi;
+    function hash(i, j) {
+      const temp = Math.sin(i * 12.9898 + j * 78.233 + seed) * 43758.5453123;
+      return temp - Math.floor(temp);
+    }
+    const a = hash(xi, yi);
+    const b = hash(xi + 1, yi);
+    const c = hash(xi, yi + 1);
+    const d = hash(xi + 1, yi + 1);
+    const ux = xf * xf * (3 - 2 * xf);
+    const uy = yf * yf * (3 - 2 * yf);
+    return a * (1 - ux) * (1 - uy) + b * ux * (1 - uy) + c * (1 - ux) * uy + d * ux * uy;
+  }
   for(let y=0;y<MAP_H;y++) for(let x=0;x<MAP_W;x++){
     let val=0, amp=1, freq=scale;
     for(let i=0;i<octaves;i++){
-      const nx = (x + seed) * freq;
-      const ny = (y + seed * 0.7) * freq;
-      val += Math.sin(nx) * Math.cos(ny) * amp;
+      const nx = x * freq;
+      const ny = y * freq;
+      val += valueNoise(nx, ny) * amp;
       amp *= 0.5; freq *= 2;
     }
     noise[idx(x,y)] = val;
@@ -499,19 +549,17 @@ function generateRandomWorld(){
   }
   for(let i=0;i<noise.length;i++){
     const n = (noise[i]-min)/(max-min);
-    if(n<0.18) terrain[i]=TERRAIN.DEEP_OCEAN;
-    else if(n<0.25) terrain[i]=TERRAIN.SHALLOW_WATER;
-    else if(n<0.48) terrain[i]=TERRAIN.PLAINS;
-    else if(n<0.68) terrain[i]=TERRAIN.FOREST;
-    else if(n<0.83) terrain[i]=TERRAIN.DESERT;
+    if(n<0.2) terrain[i]=TERRAIN.DEEP_OCEAN;
+    else if(n<0.3) terrain[i]=TERRAIN.SHALLOW_WATER;
+    else if(n<0.5) terrain[i]=TERRAIN.PLAINS;
+    else if(n<0.65) terrain[i]=TERRAIN.DESERT;
+    else if(n<0.8) terrain[i]=TERRAIN.FOREST;
     else terrain[i]=TERRAIN.MOUNTAIN;
   }
 }
-
 function generateWorld(){
   generateRandomWorld();
 }
-
 // ====================== WEATHER ======================
 function updateWeather(){
   weatherTick++;
@@ -531,7 +579,6 @@ function getWeatherMods(){
     default: return {atk:1.0,def:1.0,grow:1.0};
   }
 }
-
 // ====================== FACTION ======================
 class Faction{
   constructor(id,color,capX,capY,name){
@@ -571,7 +618,6 @@ class Faction{
     }
   }
 }
-
 // ====================== SPAWN NATION ======================
 function spawnNation(x,y,name,color,isSpecial=false){
   if(x===undefined){
@@ -599,7 +645,6 @@ function placeCapital(f,x,y){
   map[i]=f.id; troops[i]=10; capitals[i]=1;
   f.cells=1; f.totalTroops=10;
 }
-
 // ====================== EGO BUFF ======================
 function applyEgo(){
   if(selectedFaction === null) return;
@@ -613,7 +658,6 @@ function applyEgo(){
     updateFactionUI();
   }, 2000);
 }
-
 // ====================== PLAYER CONTROL ======================
 function playerControl(){
   if(controlledFaction === null || !factions[controlledFaction]?.aiEnabled) return;
@@ -623,7 +667,6 @@ function playerControl(){
   const wmod = getWeatherMods();
   const tmods = f.getTacticMods();
   const weatherBoost = currentWeather === f.preferredWeather ? 1.2 : 1.0;
-
   const ownTiles = [];
   for(let i=0;i<map.length;i++){
     if(map[i]===f.id && troops[i]>1 && ![TERRAIN.DEEP_OCEAN,TERRAIN.SHALLOW_WATER].includes(terrain[i])){
@@ -631,7 +674,6 @@ function playerControl(){
     }
   }
   if(!ownTiles.length) return;
-
   for(const i of ownTiles){
     const x = i % MAP_W, y = Math.floor(i / MAP_W);
     const att = troops[i];
@@ -647,7 +689,7 @@ function playerControl(){
       const effAtk = Math.floor(att*attMod);
       if(effAtk > def * 1.2){
         map[ni]=f.id;
-        if(terrain[ni]===TERRAIN.SHALLOW_WATER) nav,navies[ni]=Math.max(1,effAtk-def);
+        if(terrain[ni]===TERRAIN.SHALLOW_WATER) navies[ni]=Math.max(1,effAtk-def);
         else troops[ni]=Math.max(1,effAtk-def);
         troops[i]=Math.max(1,att-1);
         if(capitals[ni]){
@@ -661,7 +703,6 @@ function playerControl(){
       }
     }
   }
-
   for(const i of ownTiles){
     const x = i % MAP_W, y = Math.floor(i / MAP_W);
     const att = troops[i];
@@ -678,7 +719,6 @@ function playerControl(){
     }
   }
 }
-
 // ====================== BETRAYAL ======================
 function checkBetrayals(){
   if(tick-lastBetrayalTick<600) return;
@@ -696,7 +736,6 @@ function checkBetrayals(){
     lastBetrayalTick = tick;
   });
 }
-
 // ====================== MAP DRAW ======================
 const img = ctx.createImageData(MAP_W,MAP_H);
 const data = img.data;
@@ -759,7 +798,6 @@ function drawMap(){
   }
   ctx.restore();
 }
-
 // ====================== SIMULATION ======================
 function step(){
   const alive = factions.filter(f=>f.alive);
@@ -778,11 +816,9 @@ function step(){
   if(tick%30===0) checkBetrayals();
   const wmod = getWeatherMods();
   const weatherBoost = (faction) => (faction && currentWeather === faction.preferredWeather ? 1.2 : 1.0);
-
   if(controlledFaction !== null && factions[controlledFaction]?.aiEnabled === false){
     playerControl();
   }
-
   for(let i=0;i<map.length;i++){
     const fid=map[i];
     if(!fid||!factions[fid].alive || !factions[fid].aiEnabled) continue;
@@ -801,7 +837,6 @@ function step(){
       changed=true;
     }
   }
-
   alive.forEach(f=>{
     if(!f.aiEnabled || tick % 800 !== 0 || Math.random() > 0.003) return;
     const possible = alive.filter(o => o.id !== f.id && !f.allies.has(o.id) && o.cells > 5 && f.cells > 5);
@@ -810,7 +845,6 @@ function step(){
     f.allies.add(ally.id); ally.allies.add(f.id);
     log(`${f.name} allies with ${ally.name}`);
   });
-
   for(let y=0;y<MAP_H;y++) for(let x=0;x<MAP_W;x++){
     const i=idx(x,y);
     const fid=map[i];
@@ -865,7 +899,6 @@ function step(){
       }
     }
   }
-
   for(let y=0;y<MAP_H;y++) for(let x=0;x<MAP_W;x++){
     const i=idx(x,y);
     const fid=map[i];
@@ -887,7 +920,6 @@ function step(){
       }
     }
   }
-
   for(let i=0;i<map.length;i++){
     if(map[i]!==newMap[i] || troops[i]!==newTroops[i] || navies[i]!==newNavies[i]) changed=true;
     if(newMap[i] && factions[newMap[i]].alive){
@@ -900,7 +932,6 @@ function step(){
   drawMap();
   if(running) frameId=requestAnimationFrame(step);
 }
-
 // ====================== UI ======================
 function updateFactionUI(){
   const cont=document.getElementById('factions');
@@ -911,7 +942,7 @@ function updateFactionUI(){
     el.className='fac';
     el.style.backgroundColor=f.color;
     const allies=Array.from(f.allies).map(a=>`<span class="ally-icon" style="background:${factions[a].color};" title="${factions[a].name}"></span>`).join('');
-    const cap=capitals[idx(f.capitalX,f.capitalY)]?' Star':''; 
+    const cap=capitals[idx(f.capitalX,f.capitalY)]?' Star':'';
     const boost = f.napoleonBoost>1?` <b style="color:#ffd700">x${f.napoleonBoost}</b>`:'';
     const tactic = ` <b style="color:#00ffff">${TACTIC_NAMES[f.tactic]}</b>`;
     const control = controlledFaction===i ? ` <b style="color:#ff00ff">[CONTROL]</b>` : (f.aiEnabled ? '' : ` <b style="color:#888">[MANUAL]</b>`);
@@ -942,7 +973,6 @@ function updateFactionUI(){
     cont.appendChild(el);
   });
 }
-
 // ====================== BUTTONS ======================
 function resetWorld(){
   running=false; map.fill(0); troops.fill(0); navies.fill(0); capitals.fill(0);
@@ -954,7 +984,6 @@ function resetWorld(){
   log('New World Generated'); popup('World Ready!','#4CAF50'); drawMap();
   updateFactionUI();
 }
-
 document.getElementById('resetBtn').onclick = resetWorld;
 document.getElementById('startBtn').onclick = ()=>{ if(!running){running=true;frameId=requestAnimationFrame(step);} };
 document.getElementById('stopBtn').onclick = ()=>{ running=false; if(frameId) cancelAnimationFrame(frameId); };
@@ -1013,7 +1042,6 @@ document.getElementById('revolutionBtn').onclick = () => {
 };
 document.getElementById('zoomIn').onclick = ()=>{ zoomLevel += 0.2; resize(); };
 document.getElementById('zoomOut').onclick = ()=>{ zoomLevel = Math.max(0.2, zoomLevel - 0.2); resize(); };
-
 // ====================== MOUSE ======================
 canvas.addEventListener('wheel', e => {
   e.preventDefault();
@@ -1057,18 +1085,20 @@ function clampView(){
   viewX = Math.min(0, Math.max(canvas.width - sw, viewX));
   viewY = Math.min(0, Math.max(canvas.height - sh, viewY));
 }
-
 // ====================== RESIZE ======================
 function resize(){
   canvas.width = window.innerWidth;
   canvas.height = window.innerHeight;
   const base = Math.min(canvas.width / MAP_W, canvas.height / MAP_H);
-  pixelSize = Math.max(1, Math.floor(base * zoomLevel));
+  let graphicsMultiplier = 1;
+  if (graphicsLevel === 'low') graphicsMultiplier = 0.5;
+  else if (graphicsLevel === 'high') graphicsMultiplier = 2;
+  pixelSize = Math.max(1, Math.floor(base * zoomLevel * graphicsMultiplier));
+  ctx.imageSmoothingEnabled = (graphicsLevel === 'low');
   clampView();
   drawMap();
 }
 window.addEventListener('resize', resize);
-
 // ====================== KEYBOARD ======================
 document.addEventListener('keydown', e => {
   if(e.key === 'f' || e.key === 'F'){
@@ -1082,7 +1112,6 @@ document.addEventListener('keydown', e => {
     applyEgo();
   }
 });
-
 // ====================== START GAME ======================
 function startGame(){
   resetWorld();
@@ -1093,4 +1122,3 @@ function startGame(){
 </script>
 </body>
 </html>
-
