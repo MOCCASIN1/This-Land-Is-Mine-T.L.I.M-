@@ -8,7 +8,9 @@
   body{background:#000;color:#fff;font-family:Arial,Helvetica,sans-serif;overflow:hidden;position:relative;}
   #mainMenu{
     position:fixed;top:0;left:0;right:0;bottom:0;
-    background:#000;
+    background:linear-gradient(135deg, #000000, #001f3f, #000000);
+    background-size:200% 200%;
+    animation:bgMove 10s linear infinite;
     display:flex;flex-direction:column;align-items:center;justify-content:center;
     gap:30px;z-index:1000;transition:opacity .5s;
     overflow:hidden;
@@ -21,16 +23,21 @@
     background-clip:text;
     color:transparent;
     text-shadow:0 0 30px rgba(255,255,255,0.8), 0 0 60px rgba(255,0,0,0.6);
-    animation:textWave 8s ease-in-out infinite, glowPulse 3s ease-in-out infinite;
+    animation:textWave 8s ease-in-out infinite, glowPulse 3s ease-in-out infinite, titleBounce 2s ease-in-out infinite;
     letter-spacing:0.05em;
   }
   .subtitle{
     font-size:1.6em;color:#ccc;text-shadow:0 0 15px rgba(255,255,255,0.5);
-    animation:glowPulse 2.5s ease-in-out infinite;
+    animation:glowPulse 2.5s ease-in-out infinite, slideIn 0.5s ease-out forwards;
+    animation-delay:0.2s;
+    opacity:0;
   }
   #timerDisplay{
     font-size:1.4em;color:#ffd700;text-shadow:0 0 10px #ffd700;
     margin-top:10px;
+    animation:slideIn 0.5s ease-out forwards, timerPulse 2s ease-in-out infinite;
+    animation-delay:0.4s;
+    opacity:0;
   }
   #graphicsSelect{
     background:#333;color:#fff;padding:8px 16px;border-radius:8px;border:2px solid #ffd700;
@@ -42,6 +49,8 @@
     border-radius:12px;cursor:pointer;font-size:1.5em;font-weight:bold;
     transition:all .3s;box-shadow:0 6px 20px rgba(0,0,0,.6), 0 0 20px rgba(255,215,0,0.4);
     position:relative;overflow:hidden;
+    animation:slideIn 0.5s ease-out forwards;
+    opacity:0;
   }
   #mainMenu button::before{
     content:'';position:absolute;top:0;left:-100%;width:100%;height:100%;
@@ -54,14 +63,24 @@
     transform:scale(1.08);box-shadow:0 8px 25px rgba(0,0,0,.7), 0 0 30px rgba(255,215,0,0.7);
   }
   #mainMenu button:active{transform:scale(0.98);}
+  #playBtn{animation-delay:0.6s;}
+  #tutorialBtn{animation-delay:0.8s;}
+  #creditsBtn{animation-delay:1.0s;}
+  #mainMenu > div:nth-of-type(1){
+    animation:slideIn 0.5s ease-out forwards;
+    animation-delay:1.2s;
+    opacity:0;
+  }
   #discordBtn{
     position:absolute;bottom:30px;right:30px;
     width:60px;height:60px;background:#5865F2;border-radius:50%;
     display:flex;align-items:center;justify-content:center;
     box-shadow:0 0 20px rgba(88,101,242,0.8);cursor:pointer;
-    transition:all .3s;animation:discordPulse 2s infinite;
+    transition:all .3s;animation:discordPulse 2s infinite, slideIn 0.5s ease-out forwards;
+    animation-delay:1.4s;
+    opacity:0;
   }
-  #discordBtn:hover{transform:scale(1.15);box-shadow:0 0 30px rgba(88,101,242,1);}
+  #discordBtn:hover{transform:scale(1.15) rotate(10deg);box-shadow:0 0 30px rgba(88,101,242,1);}
   #discordBtn svg{width:36px;height:36px;fill:#fff;}
   #ui{
     position:fixed;top:8px;left:8px;z-index:10;
@@ -168,10 +187,45 @@
     0%,100%{text-shadow:0 0 20px rgba(255,255,255,0.6), 0 0 40px rgba(255,0,0,0.4);}
     50%{text-shadow:0 0 40px rgba(255,255,255,1), 0 0 80px rgba(0,102,255,0.8);}
   }
+  @keyframes titleBounce {
+    0%,100%{transform:translateY(0);}
+    50%{transform:translateY(-10px);}
+  }
   @keyframes discordPulse {
     0%,100%{box-shadow:0 0 20px rgba(88,101,242,0.8);}
     50%{box-shadow:0 0 35px rgba(88,101,242,1);}
   }
+  @keyframes bgMove {
+    0%{background-position:0% 0%;}
+    50%{background-position:100% 100%;}
+    100%{background-position:0% 0%;}
+  }
+  @keyframes slideIn {
+    0%{opacity:0;transform:translateY(20px);}
+    100%{opacity:1;transform:translateY(0);}
+  }
+  @keyframes timerPulse {
+    0%,100%{transform:scale(1);}
+    50%{transform:scale(1.05);}
+  }
+  /* ---------- UPDATE LOG PANEL ---------- */
+  #updateLogPanel{
+    position:fixed;bottom:8px;right:8px;width:260px;
+    background:rgba(0,0,0,.9);border:1px solid #444;
+    border-radius:8px;padding:8px;z-index:10;
+    max-height:300px;overflow-y:auto;
+    transition:opacity .3s;
+  }
+  #updateLogPanel.hidden{opacity:0;pointer-events:none;}
+  #updateLogPanel h3{
+    margin:0 0 6px 0;font-size:13px;color:#ffd700;
+    cursor:pointer;text-align:center;
+  }
+  .update-entry{
+    margin:6px 0;font-size:11px;line-height:1.3;
+  }
+  .update-entry strong{color:#00ffff;}
+  .Encircled{color:#ff4500;font-weight:bold;}
 </style>
 </head>
 <body>
@@ -192,7 +246,7 @@
     </select>
   </div>
   <div id="discordBtn" title="Join Discord">
-    <svg viewBox="0 0 24 24"><path d="M20.317 4.37a19.791 19.791 0 0 0-4.885-1.515a.074.074 0 0 0-.079.037c-.21.375-.444.864-.608 1.25a18.27 18.27 0 0 0-5.487 0a12.64 12.64 0 0 0-.617-1.25a.077.077 0 0 0-.079-.037A19.736 19.736 0 0 0 3.677 4.37a.07.07 0 0 0-.032.027C.533 9.046-.32 13.58.099 18.057a.082.082 0 0 0 .031.057a19.9 19.9 0 0 0 5.993 3.03a.078.078 0 0 0 .084-.028a14.09 14.09 0 0 0 1.226-1.994a.076.076 0 0 0-.041-.106a13.107 13.107 0 0 1-1.872-.892a.077.077 0 0 1-.008-.128a10.2 10.2 0 0 0 .372-.292a.074.074 0 0 1 .077-.01c3.928 1.793 8.18 1.793 12.062 0a.074.074 0 0 1 .078.01c.12.098.246.198.373.292a.077.077 0 0 1-.006.127a12.299 12.299 0 0 1-1.873.892a.077.077 0 0 0-.041.107c.36.698.772 1.362 1.225 1.993a.076.076 0 0 0 .084.028a19.839 19.839 0 0 0 6.002-3.03a.077.077 0 0 0 .032-.054c.5-5.177-.838-9.674-3.549-13.66a.061.061 0 0 0-.031-.03zM8.02 15.33c-1.183 0-2.157-1.085-2.157-2.419c0-1.333.956-2.419 2.157-2.419c1.21 0 2.176 1.096 2.157 2.42c0 1.333-.956 2.418-2.157 2.418zm7.975 0c-1.183 0-2.157-1.085-2.157-2.419c0-1.333.955-2.419 2.157-2.419c1.21 0 2.176 1.096 2.157 2.42c0 1.333-.946 2.418-2.157 2.418z"/></svg>
+    <svg viewBox="0 0 24 24"><path d="M20.317 4.37a19.791 19.791 0 0 0-4.885-1.515a.074.074 0 0 0-.079.037c-.21.375-.444.864-.608 1.25a18.27 18.27 0 0 0-5.487 0a12.64 12.64 0 0 0-.617-1.25a.077.077 0 0 0-.079-.037A19.736 19.736 0 0 0 3.677 4.37a.07.07 0 0 0-.032.027C.533 9.046-.32 13.58.099 18.057a.082.082 0 0 0 .031.057a19.9 19.9 0 0 0 5.993 3.03a.078.078 0 0 0 . 0.084-.028a14.09 14.09 0 0 0 1.226-1.994a.076.076 0 0 0-.041-.106a13.107 13.107 0 0 1-1.872-.892a.077.077 0 0 1-.008-.128a10.2 10.2 0 0 0 .372-.292a.074.074 0 0 1 .077-.01c3.928 1.793 8.18 1.793 12.062 0a.074.074 0 0 1 .078.01c.12.098.246.198.373.292a.077.077 0 0 1-.006.127a12.299 12.299 0 0 1-1.873.892a.077.077 0 0 0-.041.107c.36.698.772 1.362 1.225 1.993a.076.076 0 0 0 .084.028a19.839 19.839 0 0 0 6.002-3.03a.077.077 0 0 0 .032-.054c.5-5.177-.838-9.674-3.549-13.66a.061.061 0 0 0-.031-.03zM8.02 15.33c-1.183 0-2.157-1.085-2.157-2.419c0-1.333.956-2.419 2.157-2.419c1.21 0 2.176 1.096 2.157 2.42c0 1.333-.956 2.418-2.157 2.418zm7.975 0c-1.183 0-2.157-1.085-2.157-2.419c0-1.333.955-2.419 2.157-2.419c1.21 0 2.176 1.096 2.157 2.42c0 1.333-.946 2.418-2.157 2.418z"/></svg>
   </div>
 </div>
 <!-- GAME UI -->
@@ -210,16 +264,9 @@
   <button id="makeAllianceBtn">Ally</button>
   <button id="breakAllianceBtn">Break</button>
   <select id="buffSelect">
-    <option value="1">1x</option>
-    <option value="2">2x</option>
-    <option value="3">3x</option>
-    <option value="4">4x</option>
-    <option value="5">5x</option>
-    <option value="6">6x</option>
-    <option value="7">7x</option>
-    <option value="8">8x</option>
-    <option value="9">9x</option>
-    <option value="10">10x</option>
+    <option value="1">1x</option><option value="2">2x</option><option value="3">3x</option><option value="4">4x</option>
+    <option value="5">5x</option><option value="6">6x</option><option value="7">7x</option><option value="8">8x</option>
+    <option value="9">9x</option><option value="10">10x</option>
   </select>
   <button id="applyBuffBtn">Buff</button>
   <button id="zoomIn">Zoom +</button>
@@ -233,6 +280,11 @@
 <div id="history-panel" class="hidden">
   <div id="history"></div>
   <div id="conflicts"></div>
+</div>
+<!-- UPDATE LOG PANEL -->
+<div id="updateLogPanel" class="hidden">
+  <h3>Update Log (v1.2.1)</h3>
+  <div id="updateLogContent"></div>
 </div>
 <script>
 // ====================== AUDIO ENGINE ======================
@@ -257,7 +309,6 @@ function playSound(freq = 440, type = 'sine', duration = 0.1, volume = 0.3, detu
   osc.start();
   osc.stop(audioCtx.currentTime + duration);
 }
-// Sound Library — Clean, Satisfying, Unique
 const SOUNDS = {
   menu: () => playSound(600, 'square', 0.12, 0.25, 200),
   start: () => playSound(800, 'sawtooth', 0.15, 0.3, -100),
@@ -283,45 +334,93 @@ const SOUNDS = {
   reset: () => {
     playSound(200, 'square', 0.18, 0.35, -400);
     setTimeout(() => playSound(400, 'sine', 0.12, 0.3, -200), 100);
+  },
+  encircled: () => {
+    playSound(200, 'sawtooth', 0.3, 0.4, -800);
+    setTimeout(() => playSound(150, 'sine', 0.25, 0.35, -1000), 100);
   }
 };
-// Attach sounds to all buttons
 function attachButtonSounds() {
   const btnMap = {
-    playBtn: 'menu',
-    tutorialBtn: 'menu',
-    creditsBtn: 'menu',
-    discordBtn: 'discord',
-    menuBtn: 'menu',
-    resetBtn: 'reset',
-    startBtn: 'start',
-    stopBtn: 'stop',
-    addBtn: 'spawn',
-    removeBtn: 'remove',
-    godBtn: 'god',
-    controlBtn: 'control',
-    revolutionBtn: 'revolution',
-    egoBtn: 'ego',
-    makeAllianceBtn: 'ally',
-    breakAllianceBtn: 'break',
-    applyBuffBtn: 'buff',
-    zoomIn: 'zoomIn',
-    zoomOut: 'zoomOut'
+    playBtn: 'menu', tutorialBtn: 'menu', creditsBtn: 'menu', discordBtn: 'discord',
+    menuBtn: 'menu', resetBtn: 'reset', startBtn: 'start', stopBtn: 'stop',
+    addBtn: 'spawn', removeBtn: 'remove', godBtn: 'god', controlBtn: 'control',
+    revolutionBtn: 'revolution', egoBtn: 'ego', makeAllianceBtn: 'ally',
+    breakAllianceBtn: 'break', applyBuffBtn: 'buff', zoomIn: 'zoomIn', zoomOut: 'zoomOut'
   };
   Object.entries(btnMap).forEach(([id, sound]) => {
     const el = document.getElementById(id);
-    if (el) {
-      el.addEventListener('click', () => {
-        initAudio();
-        SOUNDS[sound]();
-      });
-    }
+    if (el) el.addEventListener('click', () => { initAudio(); SOUNDS[sound](); });
   });
-  // Special: Select buff dropdown
   document.getElementById('buffSelect').addEventListener('change', () => {
-    initAudio();
-    playSound(1000, 'sine', 0.06, 0.2, 200);
+    initAudio(); playSound(1000, 'sine', 0.06, 0.2, 200);
   });
+}
+// ====================== UPDATE LOG DATA ======================
+const UPDATE_LOG = [
+  { version: "1.2.1", date: "2025-11-14", notes: [
+    "<strong>NEW TACTICS:</strong> Scorched Earth, Attrition, Siege, Overwhelm, Encirclement",
+    "<strong>BLITZKRIEG ENCIRCLEMENT:</strong> Now detects and destroys fully surrounded enemy pockets",
+    "AI smarter about cutting off supply lines"
+  ]},
+  { version: "1.2.0", date: "2025-11-11", notes: [
+    "Added persistent play-time (saved in browser).",
+    "Added Update Log panel with version history.",
+    "Minor UI tweaks."
+  ]},
+  { version: "1.1.0", date: "2025-10-30", notes: [
+    "Introduced EGO power-up (press <b>E</b>).",
+    "Added weather system affecting battles.",
+    "Improved AI tactics switching."
+  ]},
+  { version: "1.0.0", date: "2025-10-15", notes: [
+    "Initial release.",
+    "Core conquest mechanics.",
+    "God Mode, alliances, Napoleon secret code."
+  ]}
+];
+function renderUpdateLog() {
+  const container = document.getElementById('updateLogContent');
+  container.innerHTML = UPDATE_LOG.map(entry => `
+    <div class="update-entry">
+      <strong>v${entry.version}</strong> – ${entry.date}
+      <ul>${entry.notes.map(n => `<li>${n}</li>`).join('')}</ul>
+    </div>
+  `).join('');
+}
+function toggleUpdateLog() {
+  const panel = document.getElementById('updateLogPanel');
+  panel.classList.toggle('hidden');
+}
+// ====================== PERSISTENT TIMER ======================
+let playStartTime = 0;
+let savedElapsed = 0;
+const TIMER_KEY = 'TLIM_PLAYTIME';
+function loadSavedTime() {
+  const saved = localStorage.getItem(TIMER_KEY);
+  if (saved) savedElapsed = parseInt(saved, 10);
+}
+function saveElapsed() {
+  localStorage.setItem(TIMER_KEY, Math.floor((Date.now() - playStartTime) / 1000 + savedElapsed).toString());
+}
+function startTimer() {
+  loadSavedTime();
+  playStartTime = Date.now();
+  document.getElementById('timerDisplay').style.display = 'block';
+  if (timerInterval) clearInterval(timerInterval);
+  timerInterval = setInterval(updateTimer, 500);
+}
+function stopTimer() {
+  if (timerInterval) { clearInterval(timerInterval); timerInterval = null; }
+  saveElapsed();
+}
+function updateTimer() {
+  if (!playStartTime) return;
+  const elapsed = Math.floor((Date.now() - playStartTime) / 1000) + savedElapsed;
+  const h = String(Math.floor(elapsed / 3600)).padStart(2, '0');
+  const m = String(Math.floor((elapsed % 3600) / 60)).padStart(2, '0');
+  const s = String(elapsed % 60).padStart(2, '0');
+  document.getElementById('timerDisplay').textContent = `Play time: ${h}:${m}:${s}`;
 }
 // ====================== GLOBALS ======================
 const canvas = document.getElementById('game');
@@ -340,7 +439,6 @@ let startDragX = 0, startDragY = 0;
 let allyingMode = false;
 let breakingMode = false;
 let seed = Math.random() * 1000000;
-let playStartTime = 0;
 let timerInterval = null;
 let graphicsLevel = 'medium';
 // ----- Terrain -----
@@ -369,9 +467,23 @@ let lastBetrayalTick = 0;
 let napoleonActive = false;
 let hudHidden = true;
 let egoActive = new Map(); // factionId -> endTick
-// ----- Tactics -----
-const TACTICS = { BLITZKRIEG: 0, FORTRESS: 1, GUERRILLA: 2, NAVAL: 3, BALANCED: 4 };
-const TACTIC_NAMES = ['Blitzkrieg', 'Fortress', 'Guerrilla', 'Naval', 'Balanced'];
+// ----- Tactics (EXPANDED!) -----
+const TACTICS = {
+  BLITZKRIEG: 0,
+  FORTRESS: 1,
+  GUERRILLA: 2,
+  NAVAL: 3,
+  BALANCED: 4,
+  SCORCHED_EARTH: 5,
+  ATTRITION: 6,
+  SIEGE: 7,
+  OVERWHELM: 8,
+  ENCIRCLEMENT: 9
+};
+const TACTIC_NAMES = [
+  'Blitzkrieg', 'Fortress', 'Guerrilla', 'Naval', 'Balanced',
+  'Scorched Earth', 'Attrition', 'Siege', 'Overwhelm', 'Encirclement'
+];
 // ====================== HELPERS ======================
 function idx(x,y){ return y*MAP_W + x; }
 function randomColor(){ return '#'+Math.floor(Math.random()*0xffffff).toString(16).padStart(6,'0'); }
@@ -380,8 +492,8 @@ function hexToRgb(hex){
   return [n>>16 & 255, n>>8 & 255, n & 255];
 }
 function randomNationName(){
-  const pre = ['Neo','Greater','United','Soviet','Imperial','Free','People\'s','Holy','Ancient','Iron','Steel','Golden','Shadow','Storm'];
-  const suf = ['Empire','Republic','Federation','Kingdom','Alliance','Confederacy','Syndicate','Caliphate','Hegemony','Legion','Phalanx','Dominion','Coalition','Order'];
+  const pre = ['Neo','Greater','United','Soviet','Imperial','Free','People\'s','Holy','Ancient','Iron','Steel','Golden','Shadow','Storm','Eternal','Divine','Crimson','Azure','Obsidian'];
+  const suf = ['Empire','Republic','Federation','Kingdom','Alliance','Confederacy','Syndicate','Caliphate','Hegemony','Legion','Phalanx','Dominion','Coalition','Order','Dominion','Ascendancy'];
   return pre[Math.floor(Math.random()*pre.length)]+' '+suf[Math.floor(Math.random()*suf.length)];
 }
 function log(msg){
@@ -417,7 +529,7 @@ function popup(msg,color='#fff',special=false){
 }
 function toggleHUD(){
   hudHidden = !hudHidden;
-  const elements = [ui, logDiv, document.getElementById('weather'), document.getElementById('history-panel')];
+  const elements = [ui, logDiv, document.getElementById('weather'), document.getElementById('history-panel'), document.getElementById('updateLogPanel')];
   elements.forEach(el => el.classList.toggle('hidden', hudHidden));
 }
 function createShockwave(x, y){
@@ -447,25 +559,6 @@ function playNapoleonSound(){
   gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.5);
   osc.start(); osc.stop(audioCtx.currentTime + 0.5);
 }
-// ====================== TIMER FUNCTIONS ======================
-function startTimer() {
-  playStartTime = Date.now();
-  document.getElementById('timerDisplay').style.display = 'block';
-  if (timerInterval) clearInterval(timerInterval);
-  timerInterval = setInterval(updateTimer, 500);
-}
-function stopTimer() {
-  if (timerInterval) clearInterval(timerInterval);
-  timerInterval = null;
-}
-function updateTimer() {
-  if (!playStartTime) return;
-  const elapsed = Math.floor((Date.now() - playStartTime) / 1000);
-  const h = String(Math.floor(elapsed / 3600)).padStart(2, '0');
-  const m = String(Math.floor((elapsed % 3600) / 60)).padStart(2, '0');
-  const s = String(elapsed % 60).padStart(2, '0');
-  document.getElementById('timerDisplay').textContent = `Play time: ${h}:${m}:${s}`;
-}
 // ====================== GRAPHICS SETTING ======================
 function applyGraphics() {
   graphicsLevel = document.getElementById('graphicsSelect').value;
@@ -493,6 +586,7 @@ document.getElementById('tutorialBtn').onclick = () => {
 - Buff any nation up to 10x
 - Drag to pan, scroll to zoom
 - Press F to toggle HUD, C to control, E for EGO
+- NEW: Blitzkrieg now ENCIRCLES enemy pockets!
 Claim your land!`);
 };
 document.getElementById('creditsBtn').onclick = () => {
@@ -589,9 +683,9 @@ class Faction{
     this.napoleonBoost = 1.0;
     this.aggression = 1.0 + Math.random() * 0.5;
     this.preferredWeather = Math.floor(Math.random() * 5);
-    this.tactic = Math.floor(Math.random() * 5);
+    this.tactic = Math.floor(Math.random() * 10); // Now 10 tactics!
     this.tacticAge = 0;
-    this.tacticChangeTick = 500 + Math.floor(Math.random() * 1000);
+    this.tacticChangeTick = 400 + Math.floor(Math.random() * 800);
     this.aiEnabled = true;
   }
   getEffectiveBoost(){
@@ -599,11 +693,17 @@ class Faction{
   }
   getTacticMods(){
     switch(this.tactic){
-      case TACTICS.BLITZKRIEG: return {atk:1.15, def:0.95, grow:1.25, terrain:1.0};
-      case TACTICS.FORTRESS: return {atk:0.85, def:1.35, grow :0.75, terrain:1.3};
-      case TACTICS.GUERRILLA: return {atk:1.05, def:1.05, grow:0.95, terrain:1.4};
-      case TACTICS.NAVAL: return {atk:1.10, def:1.10, grow:0.90, terrain:1.0};
-      default: return {atk:1.0, def:1.0, grow:1.0, terrain:1.0};
+      case TACTICS.BLITZKRIEG: return {atk:1.25, def:0.90, grow:1.35, terrain:1.0, encircle:1.0};
+      case TACTICS.FORTRESS: return {atk:0.80, def:1.45, grow:0.70, terrain:1.4, encircle:0.2};
+      case TACTICS.GUERRILLA: return {atk:1.10, def:1.10, grow:0.90, terrain:1.5, encircle:0.6};
+      case TACTICS.NAVAL: return {atk:1.15, def:1.10, grow:0.85, terrain:1.0, encircle:0.3};
+      case TACTICS.BALANCED: return {atk:1.0, def:1.0, grow:1.0, terrain:1.0, encircle:0.5};
+      case TACTICS.SCORCHED_EARTH: return {atk:1.30, def:0.75, grow:0.60, terrain:0.8, encircle:0.4};
+      case TACTICS.ATTRITION: return {atk:0.90, def:1.20, grow:0.80, terrain:1.2, encircle:0.7};
+      case TACTICS.SIEGE: return {atk:0.85, def:1.30, grow:0.75, terrain:1.3, encircle:0.8};
+      case TACTICS.OVERWHELM: return {atk:1.40, def:0.80, grow:1.10, terrain:0.9, encircle:0.5};
+      case TACTICS.ENCIRCLEMENT: return {atk:1.05, def:1.05, grow:0.95, terrain:1.1, encircle:2.0};
+      default: return {atk:1.0, def:1.0, grow:1.0, terrain:1.0, encircle:0.5};
     }
   }
   updateTactic(){
@@ -611,11 +711,82 @@ class Faction{
     this.tacticAge++;
     if(this.tacticAge > this.tacticChangeTick){
       const old = TACTIC_NAMES[this.tactic];
-      this.tactic = Math.floor(Math.random() * 5);
+      this.tactic = Math.floor(Math.random() * 10);
       this.tacticAge = 0;
-      this.tacticChangeTick = 500 + Math.floor(Math.random() * 1000);
-      log(`${this.name} switches from ${old} to ${TACTIC_NAMES[this.tactic]}`);
+      this.tacticChangeTick = 400 + Math.floor(Math.random() * 800);
+      log(`${this.name} switches from ${old} to <b>${TACTIC_NAMES[this.tactic]}</b>`);
     }
+  }
+}
+// ====================== ENCIRCLEMENT DETECTION ======================
+function findEncircledPockets() {
+  const visited = new Uint8Array(map.length);
+  const dirs = [[1,0],[-1,0],[0,1],[0,-1]];
+  const pockets = [];
+
+  for(let i=0; i<map.length; i++){
+    if(map[i] === 0 || visited[i]) continue;
+    const fid = map[i];
+    const f = factions[fid];
+    if(!f || !f.alive || f.tactic !== TACTICS.BLITZKRIEG) continue;
+
+    const component = [];
+    const queue = [i];
+    visited[i] = 1;
+    let isEncircled = true;
+    let borderCount = 0;
+
+    while(queue.length){
+      const cur = queue.pop();
+      component.push(cur);
+      const x = cur % MAP_W, y = Math.floor(cur / MAP_W);
+
+      for(const [dx,dy] of dirs){
+        const nx = x+dx, ny = y+dy;
+        if(nx<0||ny<0||nx>=MAP_W||ny>=MAP_H) continue;
+        const ni = idx(nx,ny);
+        if(map[ni] === fid && !visited[ni]){
+          visited[ni] = 1;
+          queue.push(ni);
+        } else if(map[ni] !== fid && map[ni] !== 0){
+          borderCount++;
+          if(factions[map[ni]] && !f.allies.has(map[ni])){
+            isEncircled = false;
+          }
+        }
+      }
+    }
+
+    if(isEncircled && component.length > 3 && component.length < 30 && borderCount > 6){
+      pockets.push({fid, cells: component});
+    }
+  }
+
+  return pockets;
+}
+
+function destroyEncircledPockets(pockets){
+  for(const pocket of pockets){
+    const f = factions[pocket.fid];
+    if(!f) continue;
+    const victimId = pocket.fid;
+    const victim = factions[victimId];
+    if(!victim || !victim.alive) continue;
+
+    let totalTroops = 0;
+    for(const i of pocket.cells){
+      totalTroops += troops[i];
+      map[i] = 0;
+      troops[i] = 0;
+    }
+
+    log(`<span class="Encircled">${victim.name}'s pocket of ${pocket.cells.length} cells ENCIRCLED and DESTROYED by ${f.name}!</span>`);
+    popup(`ENCIRCLED! ${victim.name} loses ${pocket.cells.length} cells!`, '#ff4500', true);
+    SOUNDS.encircled();
+
+    victim.cells -= pocket.cells.length;
+    victim.totalTroops -= totalTroops;
+    if(victim.cells <= 0) victim.alive = false;
   }
 }
 // ====================== SPAWN NATION ======================
@@ -650,7 +821,7 @@ function applyEgo(){
   if(selectedFaction === null) return;
   const f = factions[selectedFaction];
   if(egoActive.has(f.id)) return;
-  egoActive.set(f.id, tick + 120); // 2 seconds = 120 ticks (60 fps)
+  egoActive.set(f.id, tick + 120);
   log(`${f.name} activates EGO! 5x power for 2s!`);
   popup('EGO ACTIVATED!', '#ff00ff', true);
   setTimeout(() => {
@@ -774,19 +945,9 @@ function drawMap(){
   ctx.textAlign='center'; ctx.textBaseline='middle';
   for(let y=0;y<MAP_H;y++) for(let x=0;x<MAP_W;x++){
     const i=idx(x,y);
-    const landT=troops[i];
-    const navyT=navies[i];
     const isCap=capitals[i];
     const px= x*pixelSize + pixelSize/2;
     const py= y*pixelSize + pixelSize/2;
-    if(landT>0 && ![TERRAIN.DEEP_OCEAN,TERRAIN.SHALLOW_WATER].includes(terrain[i])){
-      ctx.fillStyle = landT>=5?'#fff':'#000';
-      ctx.fillText(landT, px-pixelSize*0.2, py-pixelSize*0.2);
-    }
-    if(navyT>0 && terrain[i]===TERRAIN.SHALLOW_WATER){
-      ctx.fillStyle = navyT>=5?'#fff':'#000';
-      ctx.fillText(navyT, px+pixelSize*0.2, py+pixelSize*0.2);
-    }
     if(isCap){
       ctx.font=`${pixelSize*0.9}px Arial`;
       ctx.fillStyle='#ffeb3b';
@@ -794,6 +955,73 @@ function drawMap(){
       ctx.lineWidth = pixelSize*0.15;
       ctx.strokeText('Star', px, py);
       ctx.fillText('Star', px, py);
+    }
+  }
+  ctx.strokeStyle = '#000';
+  ctx.lineWidth = Math.max(1, pixelSize * 0.1);
+  for(let y=0;y<MAP_H;y++) for(let x=0;x<MAP_W;x++){
+    const i=idx(x,y);
+    const owner = map[i];
+    if(owner === 0) continue;
+    if(x+1 < MAP_W){
+      const right = map[idx(x+1,y)];
+      if(right !== owner){
+        const px = (x+1)*pixelSize;
+        const py1 = y*pixelSize;
+        const py2 = (y+1)*pixelSize;
+        ctx.beginPath();
+        ctx.moveTo(px, py1);
+        ctx.lineTo(px, py2);
+        ctx.stroke();
+      }
+    }
+    if(y+1 < MAP_H){
+      const bottom = map[idx(x,y+1)];
+      if(bottom !== owner){
+        const py = (y+1)*pixelSize;
+        const px1 = x*pixelSize;
+        const px2 = (x+1)*pixelSize;
+        ctx.beginPath();
+        ctx.moveTo(px1, py);
+        ctx.lineTo(px2, py);
+        ctx.stroke();
+      }
+    }
+    if(x===0){
+      const px = x*pixelSize;
+      const py1 = y*pixelSize;
+      const py2 = (y+1)*pixelSize;
+      ctx.beginPath();
+      ctx.moveTo(px, py1);
+      ctx.lineTo(px, py2);
+      ctx.stroke();
+    }
+    if(y===0){
+      const py = y*pixelSize;
+      const px1 = x*pixelSize;
+      const px2 = (x+1)*pixelSize;
+      ctx.beginPath();
+      ctx.moveTo(px1, py);
+      ctx.lineTo(px2, py);
+      ctx.stroke();
+    }
+    if(y===MAP_H-1){
+      const py = (y+1)*pixelSize;
+      const px1 = x*pixelSize;
+      const px2 = (x+1)*pixelSize;
+      ctx.beginPath();
+      ctx.moveTo(px1, py);
+      ctx.lineTo(px2, py);
+      ctx.stroke();
+    }
+    if(x===MAP_W-1){
+      const px = (x+1)*pixelSize;
+      const py1 = y*pixelSize;
+      const py2 = (y+1)*pixelSize;
+      ctx.beginPath();
+      ctx.moveTo(px, py1);
+      ctx.lineTo(px, py2);
+      ctx.stroke();
     }
   }
   ctx.restore();
@@ -819,6 +1047,16 @@ function step(){
   if(controlledFaction !== null && factions[controlledFaction]?.aiEnabled === false){
     playerControl();
   }
+
+  // ENCIRCLEMENT CHECK (BLITZKRIEG ONLY)
+  if(tick % 5 === 0){
+    const pockets = findEncircledPockets();
+    if(pockets.length > 0){
+      destroyEncircledPockets(pockets);
+      changed = true;
+    }
+  }
+
   for(let i=0;i<map.length;i++){
     const fid=map[i];
     if(!fid||!factions[fid].alive || !factions[fid].aiEnabled) continue;
@@ -1037,7 +1275,7 @@ document.getElementById('revolutionBtn').onclick = () => {
     popup('LONG LIVE THE EMPEROR!','#FFD700',true);
     playNapoleonSound();
   } else {
-    popup('Wrong code! Try harder.','#ff9800');
+    popup('Wrong code! Try harder. or just join the discord server :V','#ff9800');
   }
 };
 document.getElementById('zoomIn').onclick = ()=>{ zoomLevel += 0.2; resize(); };
@@ -1055,70 +1293,105 @@ canvas.addEventListener('mousedown', e => {
   startDragY = e.clientY - viewY;
 });
 canvas.addEventListener('mousemove', e => {
-  if (dragging) {
-    viewX = e.clientX - startDragX;
-    viewY = e.clientY - startDragY;
-    clampView();
-    drawMap();
-  }
+  if(!dragging) return;
+  viewX = e.clientX - startDragX;
+  viewY = e.clientY - startDragY;
+  drawMap();
 });
 canvas.addEventListener('mouseup', () => dragging = false);
 canvas.addEventListener('mouseleave', () => dragging = false);
 canvas.addEventListener('click', e => {
-  if(!godMode || selectedFaction===null) return;
-  const rect = canvas.getBoundingClientRect();
-  const mx = e.clientX - rect.left - viewX;
-  const my = e.clientY - rect.top - viewY;
-  const x = Math.floor(mx / pixelSize);
-  const y = Math.floor(my / pixelSize);
-  if(x<0||x>=MAP_W||y<0||y>=MAP_H) return;
-  const i = idx(x,y);
-  if(capitals[i]){ alert('Cannot paint over capital!'); return; }
-  if([TERRAIN.DEEP_OCEAN,TERRAIN.SHALLOW_WATER].includes(terrain[i])){ alert('Cannot claim water!'); return; }
-  const f = factions[selectedFaction];
-  map[i]=selectedFaction; troops[i]=3; f.cells++; f.totalTroops+=3;
-  log(`${f.name} claims land`); drawMap(); updateFactionUI();
+  if(godMode){
+    const rect = canvas.getBoundingClientRect();
+    const mx = e.clientX - rect.left - viewX;
+    const my = e.clientY - rect.top - viewY;
+    const x = Math.floor(mx / pixelSize);
+    const y = Math.floor(my / pixelSize);
+    if(x<0||y<0||x>=MAP_W||y>=MAP_H) return;
+    const i = idx(x,y);
+    if(e.shiftKey){
+      if(map[i]!==0){
+        const old = factions[map[i]];
+        if(old) old.cells--;
+        map[i]=0; troops[i]=0; navies[i]=0;
+        if(capitals[i]){
+          capitals[i]=0;
+          old.alive=false;
+          popup(`${old.name} capital destroyed!`,'#ff1744');
+        }
+        log(`Land erased at (${x},${y})`);
+      }
+    }else{
+      if(selectedFaction===null){
+        popup('Select a nation first!','#ff9800');
+        return;
+      }
+      const f = factions[selectedFaction];
+      if(map[i]===0 && terrain[i]!==TERRAIN.DEEP_OCEAN){
+        map[i]=f.id;
+        troops[i]=Math.min(9, troops[i]+3);
+        f.cells++;
+        log(`God paints for ${f.name} at (${x},${y})`);
+      }
+    }
+    drawMap(); updateFactionUI();
+  }
 });
-function clampView(){
-  const sw = MAP_W * pixelSize;
-  const sh = MAP_H * pixelSize;
-  viewX = Math.min(0, Math.max(canvas.width - sw, viewX));
-  viewY = Math.min(0, Math.max(canvas.height - sh, viewY));
-}
-// ====================== RESIZE ======================
-function resize(){
-  canvas.width = window.innerWidth;
-  canvas.height = window.innerHeight;
-  const base = Math.min(canvas.width / MAP_W, canvas.height / MAP_H);
-  let graphicsMultiplier = 1;
-  if (graphicsLevel === 'low') graphicsMultiplier = 0.5;
-  else if (graphicsLevel === 'high') graphicsMultiplier = 2;
-  pixelSize = Math.max(1, Math.floor(base * zoomLevel * graphicsMultiplier));
-  ctx.imageSmoothingEnabled = (graphicsLevel === 'low');
-  clampView();
-  drawMap();
-}
-window.addEventListener('resize', resize);
 // ====================== KEYBOARD ======================
 document.addEventListener('keydown', e => {
-  if(e.key === 'f' || e.key === 'F'){
-    e.preventDefault();
+  if(e.key==='F' || e.key==='f'){
     toggleHUD();
-  }
-  if((e.key === 'c' || e.key === 'C') && selectedFaction !== null){
+  }else if(e.key==='C' || e.key==='c'){
     document.getElementById('controlBtn').click();
-  }
-  if((e.key === 'e' || e.key === 'E') && selectedFaction !== null){
+  }else if(e.key==='E' || e.key==='e'){
     applyEgo();
+  }else if(e.key===' '){
+    if(running) document.getElementById('stopBtn').click();
+    else document.getElementById('startBtn').click();
+  }else if(e.key==='R' || e.key==='r'){
+    document.getElementById('resetBtn').click();
+  }else if(e.key==='U' || e.key==='u'){
+    toggleUpdateLog();
   }
 });
+// ====================== RESIZE ======================
+function resize(){
+  const containerW = window.innerWidth;
+  const containerH = window.innerHeight - (hudHidden ? 0 : 180);
+  const scale = Math.min(containerW / (MAP_W * pixelSize), containerH / (MAP_H * pixelSize)) * zoomLevel;
+  pixelSize = Math.max(1, Math.floor(scale));
+  const sw = MAP_W * pixelSize;
+  const sh = MAP_H * pixelSize;
+  canvas.width = sw;
+  canvas.height = sh;
+  canvas.style.width = sw + 'px';
+  canvas.style.height = sh + 'px';
+  canvas.style.position = 'absolute';
+  canvas.style.left = (containerW - sw)/2 + 'px';
+  canvas.style.top = (containerH - sh)/2 + 'px';
+  viewX = (containerW - sw)/2;
+  viewY = (containerH - sh)/2;
+  drawMap();ff
+}
+window.addEventListener('resize', resize);
 // ====================== START GAME ======================
 function startGame(){
   resetWorld();
-  selectedFaction=0; updateFactionUI(); resize();
-  log('T.L.I.M! - This Land Is Mine! Press F to toggle HUD, C to control, E for EGO.');
-  attachButtonSounds(); // Initialize sounds after DOM
+  document.getElementById('weather').classList.remove('hidden');
+  document.getElementById('history-panel').classList.remove('hidden');
+  document.getElementById('updateLogPanel').classList.remove('hidden');
+  renderUpdateLog();
+  attachButtonSounds();
+  resize();
 }
+// ====================== INIT ======================
+window.onload = () => {
+  canvas.width = MAP_W; canvas.height = MAP_H;
+  resize();
+  renderUpdateLog();
+  attachButtonSounds();
+  document.getElementById('updateLogPanel').querySelector('h3').onclick = toggleUpdateLog;
+};
 </script>
 </body>
 </html>
